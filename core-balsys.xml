@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001">
+	<TriggerPackage>
+		<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>blank</name>
+			<script></script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList />
+			<regexCodePropertyList />
+		</TriggerGroup>
+	</TriggerPackage>
+	<TimerPackage />
+	<AliasPackage>
+		<AliasGroup isActive="yes" isFolder="yes">
+			<name>blank</name>
+			<script></script>
+			<command></command>
+			<packageName></packageName>
+			<regex></regex>
+		</AliasGroup>
+	</AliasPackage>
+	<ActionPackage />
+	<ScriptPackage>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>Balsys</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>balsys:new</name>
+				<packageName></packageName>
+				<script>balsys = balsys or {}
+balsys.__index = balsys
+
+function balsys:new(params)
+  local self = {}
+  setmetatable(self, balsys)
+
+  self.name = params.name
+  
+
+  if params.default == nil then
+    self.bal = params.bal or true
+    self.default = true
+  else
+    self.default = params.default
+    self.bal = self.bal or params.default
+  end
+  
+  self.cd = params.cd or false
+  self.timeout = params.timeout or 0.5
+  self.timer = false
+  self.func = params.func or false
+  self.expectfunc = params.expectfunc or false
+  
+
+  return self
+end
+
+  </script>
+				<eventHandlerList />
+				<Script isActive="yes" isFolder="no">
+					<name>expect</name>
+					<packageName></packageName>
+					<script>function balsys:expect(timeout, func)
+  local timeout = timeout or self.timeout
+  local func = func or self.expectfunc or false
+  self.bal = not self.default
+  --print(self.name .. ' is: ' .. tostring(self.bal) .. ' Begin ' .. self['timeout'] .. 's timeout timer.')
+  self.timer =
+    tempTimer(
+      timeout,
+      function()
+        self.bal = self.default
+        if func then
+          func()
+        end
+        raiseEvent('cooldown updated', self.name, 'expect timeout')
+    --    print("timeout expired, resetting " .. self.name .. ': ' .. tostring(self.bal))
+      end
+    )
+    
+  raiseEvent('cooldown updated', self.name, 'expecting')
+end</script>
+					<eventHandlerList />
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>spend</name>
+					<packageName></packageName>
+					<script>function balsys:spend(time, func)
+  self.bal = not self.default
+  local func = func or self.func or false
+  self.maxtime = time
+  --print(self.name .. ' is: ' .. tostring(self.bal) ..  ' definitely lost, killing the timeout')
+  if self.timer then
+    killTimer(self.timer)
+  end
+  --self:startCD(time or false)
+  self.timer =
+    tempTimer(
+      time,
+      function()
+        self:balback(func)
+      end
+    )
+  if self.visualCD then
+    self:startCD(time)
+  end
+  raiseEvent('cooldown updated', self.name, 'spent')
+end</script>
+					<eventHandlerList />
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>balback</name>
+					<packageName></packageName>
+					<script>
+function balsys:balback(func)
+  self.bal = self.default
+  local func = func or self.func or false
+  
+  if self.timer then
+    killTimer(self.timer)
+  end
+  
+  if func then
+    --print('running defined func')
+    func()
+  end
+  if self.visualCD then
+    self:stopCD()
+  end
+  --print(self.name .. ' is: ' .. tostring(self.bal) ..  ' killing all timers')
+  raiseEvent('balback', self.name)
+  raiseEvent('cooldown updated', self.name, 'balback')
+end</script>
+					<eventHandlerList />
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>misc</name>
+					<packageName></packageName>
+					<script>-- Methods to USE
+function balsys:ready()
+  return self.bal
+end
+
+function balsys:getTime()
+  return remainingTime(self.timer)
+end
+
+
+
+
+-- Methods to change/set object parameters 
+
+function balsys:setFunc(func)
+  self.func = func
+end
+
+function balsys:setExpectFunc(func)
+  self.expectfunc = func
+end
+
+function balsys:setDefault(default)
+  self.default = default
+end
+
+function balsys.setTimeout(time)
+  if time then
+    self.timeout = time
+  else
+    --TODO: getNetworkLatency()
+  end
+end
+
+function balsys:setCD(time)
+  self.cd = time 
+end</script>
+					<eventHandlerList />
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>visuals</name>
+					<packageName></packageName>
+					<script>--[[ DOCUMENTATION
+
+
+
+
+
+
+
+--]]
+
+</script>
+					<eventHandlerList />
+					<Script isActive="yes" isFolder="no">
+						<name>set parameters</name>
+						<packageName></packageName>
+						<script>function balsys:setTargetContainer(container)
+  
+--[[ OF COURSE THIS WOULDN'T WORK
+  if _G[container] then
+    self.targetcontainer = container
+  else
+    self.targetcontainer = false
+    error("balsys:setTargetContainer(container): specified geyser object does not exist.")
+  end
+  --]]
+  
+  self.targetcontainer = container
+  if self.css and self.getcss then
+    self.visualCD  = true
+  end
+end
+
+
+--function to set a standard/stock effect
+function balsys:setVisualEffect(effect)
+  if balsys[effect] then
+    self.css = balsys[effect].css
+    self.getcss = balsys[effect].getcss
+    self.visualCD  = true
+  else
+    error("balsys:setVisualEffect(effect): effect does not exist")
+  end
+
+end
+
+
+--advanced function for defining your own visual effects.
+function balsys:setVisuals(css, cssfunc)
+  self.css = css
+  self.getcss = cssfunc
+  if self.targetcontainer then
+    self.visualCD  = true
+  end
+end</script>
+						<eventHandlerList />
+					</Script>
+					<Script isActive="yes" isFolder="no">
+						<name>startCD() and stopCD()</name>
+						<packageName></packageName>
+						<script>function balsys:startCD(time)
+  --time should be passed from :spend()
+ -- print('balsys:startCD(time)')
+  if not self.cdlabel then
+    self:createCDlabel()
+  else
+    --print('  showing cdlabel')
+    self.cdlabel:show()
+  end
+  
+  if not self.tickTimer then
+    self.tickTimer = tempTimer(0.066, function() self:updateVisuals() end, true)
+  end
+end
+--0.666 is 15fps. I think this is as slow as it should go. Should faster frame rate be optional?
+
+function balsys:stopCD()
+  --print('balsys:stopCD() called')
+  killTimer(self.tickTimer)
+  self.tickTimer = nil
+  self:clearCSS()
+  self.cdlabel:enableClickthrough() --***
+  self.cdlabel:hide()
+  --print('stopCD() completed.')
+end
+
+
+--[[ *** NOTE
+I had an idea of disabling clickthrough, 
+so the label the CD label is now on top of, 
+is locked out for the duration of the CD
+
+Then I realised I would hate that. It would stop 
+someone from queueing the next command, so it is
+fundamentally not suited to SM.
+
+It is however somewhere at the bottom of my TODO list 
+for this, because mayve it would be good in another 
+game. And it'd be easy to implement as an optional thing.
+--]]
+</script>
+						<eventHandlerList />
+					</Script>
+					<Script isActive="yes" isFolder="no">
+						<name>createCDlabel()</name>
+						<packageName></packageName>
+						<script>function balsys:createCDlabel(container)
+ -- print('balsys:createCDlabel(container)')
+  local targetcontainer = container or self.targetcontainer or false
+  if not targetcontainer then
+    error(
+      "balsys:createCDlabel()  Unable to create cooldown label without specified target container. Use balsys:setTargetContainer() first."
+    )
+    return false
+  end
+
+  if not self.cdlabel then
+    self.cdlabel =
+      Geyser.Label:new(
+        {self.name .. '_cdlabel', x = 0, y = 0, width = '100%', height = '100%'}, targetcontainer
+      )
+  end
+end</script>
+						<eventHandlerList />
+					</Script>
+					<Script isActive="yes" isFolder="no">
+						<name>Animating it</name>
+						<packageName></packageName>
+						<script>
+
+function balsys:updateVisuals()
+  local time = self:getTime()
+  if time == 0 then
+    balsys.stopCD()
+  else
+    self.cdlabel:setStyleSheet( self.getcss( self:calc_pctime(), self.css ) )
+  end
+end
+
+
+
+
+
+
+
+function balsys:calc_pctime(time)
+  local time = time or self:getTime()
+  local max = self.maxtime
+  if time &gt;= max then
+    return 1
+  elseif time &lt;= 0 then
+    return 0
+  else
+    return time / max
+  end
+end
+
+function balsys:clearCSS()
+  --print('clearing CSS on self.cdlabel')
+  local css = [[background-color: rgba(0,0,0,0%);]] 
+  self.cdlabel:setStyleSheet(css)
+end
+</script>
+						<eventHandlerList />
+					</Script>
+					<Script isActive="yes" isFolder="no">
+						<name>Visual Effects</name>
+						<packageName></packageName>
+						<script></script>
+						<eventHandlerList />
+						<Script isActive="yes" isFolder="no">
+							<name>radial</name>
+							<packageName></packageName>
+							<script>balsys.radial = balsys.radial or {}
+balsys.radial.css =
+  [[
+	background-color: qradialgradient(
+		spread:pad, cx:0.5, cy:0.5, radius:%s, fx:0.5, fy:0.5, 
+		stop:0.3 rgba(20, 20, 20, 50), 
+		stop:0.6 rgba(100, 100, 100, 130), 
+		stop:0.7 rgba(20, 20, 20, 200))
+	]]
+
+function balsys.radial.getcss(pctime, css)
+  local radius = 1 - pctime
+  local css = css or balsys.radial.css
+  return string.format(css, radius)
+end</script>
+							<eventHandlerList />
+						</Script>
+						<Script isActive="yes" isFolder="no">
+							<name>conical</name>
+							<packageName></packageName>
+							<script>balsys.conical = balsys.conical or {}
+balsys.conical.css = [[
+  background-color: qconicalgradient(
+    cx:0.5, cy:0.5, angle:%s, 
+    stop:%s rgba(27, 28, 28, %s), 
+    stop:%s rgba(126, 126, 129, %s)
+    )]]
+
+function balsys.conical.getcss(pctime, css)
+  local css = css or balsys.conical.css
+  if pctime &lt;= 0 then
+    pctime = 0.001
+  end
+  local angle = angle or pctime*360
+  local stop1 = 1-angle/360
+  local stop2 = 1
+  local alpha1, alpha2 = 80, 200
+   
+  return string.format(css, angle, stop1, alpha1, stop2, alpha2)
+end</script>
+							<eventHandlerList />
+						</Script>
+						<Script isActive="yes" isFolder="no">
+							<name>linear</name>
+							<packageName></packageName>
+							<script>balsys.linear = balsys.linear or {}
+balsys.linear.css =
+  [[background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:%s rgba(252, 252, 252, %s), stop:%s rgba(99, 99, 99, %s))]]
+
+function balsys.linear.getcss(pctime)
+  local stop1, stop2, alpha1, alpha2 = 1, 1, 20, 120
+  local css = balsys.linear.css
+  if pctime &gt;= 1 then
+    return string.format(css, stop1, alpha1, stop2, alpha2)
+  elseif pctime &lt;= 0 then
+    return string.format(css, 1, 1, stop2, 0)
+  else
+    stop2 = pctime
+    if stop2 &lt; 0.9 then
+      stop1 = stop2 + 0.1
+    end
+    return string.format(css, stop1, alpha1, stop2, alpha2)
+  
+  
+  
+  
+  end
+end</script>
+							<eventHandlerList />
+						</Script>
+					</Script>
+				</Script>
+				<Script isActive="yes" isFolder="no">
+					<name>example</name>
+					<packageName></packageName>
+					<script>
+testcd = balsys:new({
+  name = 'testcd',
+  expectfunc = function() print('command sent, no response for 0.5s') end,
+  func = function() print('balance is back!') end,
+  })
+  
+ 
+testlabel = testlabel or Geyser.Label:new({
+  name = 'testlabel', 
+  x = 400, y = 50, width = 80, height = 80
+  })
+testlabel:move(1200, 500)
+testlabel:resize(120,120)
+testlabel:setColor('SteelBlue')
+testlabel:setFontSize(18)
+testlabel:setFont('LED DISPLAY7')
+testlabel:echo('&lt;center&gt;HELLO&lt;br&gt;THERE&lt;/center&gt;')
+
+testcd:setTargetContainer(testlabel)
+testcd:setVisualEffect('conical')
+</script>
+					<eventHandlerList />
+				</Script>
+			</Script>
+		</ScriptGroup>
+	</ScriptPackage>
+	<KeyPackage>
+		<KeyGroup isActive="yes" isFolder="yes">
+			<name>Personal</name>
+			<packageName></packageName>
+			<script></script>
+			<command></command>
+			<keyCode>-1</keyCode>
+			<keyModifier>0</keyModifier>
+		</KeyGroup>
+	</KeyPackage>
+	<HelpPackage>
+		<helpURL></helpURL>
+	</HelpPackage>
+</MudletPackage>
